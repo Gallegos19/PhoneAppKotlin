@@ -1,15 +1,14 @@
 package com.example.proyect.views.home.data.datasource
 
 import com.example.proyect.views.home.data.model.ProductDTO
-import com.example.proyect.views.home.data.model.ProductResponse
 import com.example.proyect.views.home.data.model.createProductRequest
-import com.example.proyect.views.login.data.model.LoginUserRequest
-import com.example.proyect.views.login.data.model.UserDTO
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Headers
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 interface HomeService {
     /*@GET("users/{username}")
@@ -25,5 +24,9 @@ interface HomeService {
     @Headers("Content-Type: application/json")
     @POST("/products")
     suspend fun createProduct(@Body request: createProductRequest): Response<String>
+
+    @DELETE("/products/{id}")
+    suspend fun deleteProduct(@Path("id") id: Int): Response<String>
+
 
 }

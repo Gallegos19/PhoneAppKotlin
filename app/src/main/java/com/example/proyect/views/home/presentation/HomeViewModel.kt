@@ -1,41 +1,44 @@
 package com.example.proyect.views.home.presentation
 
-import androidx.compose.runtime.Composable
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyect.views.home.data.model.ProductDTO
 import com.example.proyect.views.home.data.model.createProductRequest
-import com.example.proyect.views.home.data.repository.getProductRepository
 import com.example.proyect.views.home.domain.GetProductsUseCase
 import com.example.proyect.views.home.domain.createProductRepository
+import com.example.proyect.views.home.domain.deleteProductoUseCase
 import kotlinx.coroutines.launch
 
 class HomeViewModel : ViewModel() {
 
     private val getProductsUseCase = GetProductsUseCase()
     private val repository = createProductRepository()
+    private val deleteProduct = deleteProductoUseCase()
 
+    var deleteSuccess by mutableStateOf(false)
+        private set
 
-    private val _products = MutableLiveData<List<ProductDTO>>()
-    val products: LiveData<List<ProductDTO>> = _products
+    var success by mutableStateOf(false)
+        private set
 
-    private val _loading = MutableLiveData<Boolean>()
-    val loading: LiveData<Boolean> = _loading
+    private val _products = mutableStateOf<List<ProductDTO>>(emptyList())
+    val products: List<ProductDTO> get() = _products.value
 
-    private val _error = MutableLiveData<String>()
-    val error: LiveData<String> = _error
+    private val _loading = mutableStateOf(false)
+    val loading: Boolean get() = _loading.value
 
-    private val _success = MutableLiveData<Boolean>(false)
-    val success: LiveData<Boolean> = _success
+    private val _error = mutableStateOf("")
+    val error: String get() = _error.value
 
-    private val _message = MutableLiveData<String>()
-    val message: LiveData<String> = _message
+    private val _message = mutableStateOf("")
+    val message: String get() = _message.value
 
-    // Estado para controlar la visibilidad del modal
-    private val _isModalVisible = MutableLiveData<Boolean>(false)
-    val isModalVisible: LiveData<Boolean> = _isModalVisible
+    private val _isModalVisible = mutableStateOf(false)
+    val isModalVisible: Boolean get() = _isModalVisible.value
 
     init {
         fetchProducts()
@@ -60,37 +63,56 @@ class HomeViewModel : ViewModel() {
         }
     }
 
-    // Función para mostrar el modal
-    fun showModal() {
-        _isModalVisible.value = true
-    }
-
-    // Función para ocultar el modal
-    fun hideModal() {
-        _isModalVisible.value = false
-    }
-
     fun addProduct(request: createProductRequest) {
         viewModelScope.launch {
             _loading.value = true
             try {
                 val result = repository.createProducts(request)
                 result.onSuccess { message ->
-                    _success.value = true
-                    _message.value = message // Almacena el mensaje del servidor
-                    fetchProducts() // Actualiza la lista de productos
+                    _message.value = message
+                    success = true
+                    fetchProducts()
+                    Log.e("HomeViewModel", "Producto creado exitosamente")
                 }.onFailure { exception ->
                     _error.value = exception.message ?: "Error al crear el producto"
+                    success = false
                 }
             } catch (e: Exception) {
                 _error.value = e.message ?: "Error al crear el producto"
+                success = false
             } finally {
                 _loading.value = false
             }
         }
     }
 
+    fun deleteProduct(id: Int) {
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                val result = deleteProduct.deleteProduct(id)
+                result.onSuccess {
+                    _message.value = "Producto eliminado con éxito"
+                    deleteSuccess = true
+                    fetchProducts()
+                }.onFailure { exception ->
+                    _error.value = exception.message ?: "Error al eliminar el producto"
+                    deleteSuccess = false
+                }
+            } catch (e: Exception) {
+                _error.value = e.message ?: "Error al eliminar el producto"
+                deleteSuccess = false
+            } finally {
+                _loading.value = false
+            }
+        }
+    }
+
+    fun resetDeleteSuccess() {
+        deleteSuccess = false
+    }
+
     fun resetSuccess() {
-        _success.value = false
+        success = false
     }
 }

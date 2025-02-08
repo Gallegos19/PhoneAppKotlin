@@ -64,6 +64,10 @@ dependencies {
 
     implementation ("io.coil-kt:coil-compose:2.0.0")
     implementation ("com.squareup.retrofit2:converter-scalars:2.9.0")
+    implementation(libs.play.services.maps)
+
+    implementation ("com.google.maps.android:maps-compose:2.11.1")
+    implementation ("com.google.android.gms:play-services-location:21.0.1")
 
 
 

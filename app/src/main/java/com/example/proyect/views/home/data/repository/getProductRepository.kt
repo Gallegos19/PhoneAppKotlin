@@ -2,10 +2,7 @@ package com.example.proyect.views.home.data.repository
 
 import com.example.proyect.core.network.RetrofitHelper
 import com.example.proyect.views.home.data.model.ProductDTO
-import com.example.proyect.views.home.data.model.ProductResponse
 import com.example.proyect.views.home.data.model.createProductRequest
-import com.example.proyect.views.login.data.model.LoginUserRequest
-import com.example.proyect.views.login.data.model.UserDTO
 
 class getProductRepository {
     private val homeService = RetrofitHelper.getRetrofitHome()
@@ -16,7 +13,7 @@ class getProductRepository {
 
             if (response.isSuccessful) {
                 response.body()?.let {
-                    Result.success(it) // Devuelve el mensaje del servidor
+                    Result.success(it)
                 } ?: Result.failure(Exception("Respuesta vacía del servidor"))
             } else {
                 Result.failure(Exception(response.errorBody()?.string()))
@@ -39,4 +36,18 @@ class getProductRepository {
         }
     }
 
+    suspend fun deleteProduct(id: Int): Result<String> {
+        return try {
+            val response = homeService.deleteProduct(id)
+                if (response.isSuccessful) {
+                    response.body()?.let {
+                        Result.success(it)
+                    } ?: Result.failure(Exception("Respuesta vacía del servidor"))
+                } else {
+                    Result.failure(Exception(response.errorBody()?.string()))
+                }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 }

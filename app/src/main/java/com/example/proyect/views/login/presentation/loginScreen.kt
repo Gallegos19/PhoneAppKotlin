@@ -60,7 +60,6 @@ import kotlinx.coroutines.launch
 @Composable
 fun LoginScreen(modifier: Modifier = Modifier,loginViewModel: LoginViewModel, navigateToRegister : () -> Unit , navigateToHome: () -> Unit) {
 //val number:Int by loginViewModel.number.observeAsState(initial = 0)
-    // Observa los datos del ViewModel
     val username: String by loginViewModel.username.observeAsState("")
     val password: String by loginViewModel.password.observeAsState("")
 
@@ -231,7 +230,6 @@ fun Buttons(
         Text("Entrar")
     }
 
-    // Observa si el login fue exitoso y realiza la redirección
 
     LaunchedEffect(success) {
         if (success) {

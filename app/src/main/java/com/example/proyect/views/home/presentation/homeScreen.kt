@@ -2,55 +2,31 @@ package com.example.proyect.views.home.presentation
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Autorenew
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Logout
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.filled.Map
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.proyect.R
-import com.example.proyect.views.home.data.model.ProductDTO
 import coil.compose.rememberAsyncImagePainter
+import com.example.proyect.views.home.data.model.ProductDTO
 import com.example.proyect.views.home.data.model.createProductRequest
 import kotlinx.coroutines.launch
 
@@ -58,21 +34,39 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(
     homeViewModel: HomeViewModel,
-    navigateToLogin: () -> Unit
+    navigateToLogin: () -> Unit,
+    navigateToMap: () -> Unit
 ) {
-    val products by homeViewModel.products.observeAsState(emptyList())
-    val loading by homeViewModel.loading.observeAsState(false)
-    val error by homeViewModel.error.observeAsState("")
-    val success by homeViewModel.success.observeAsState(false)
+    val products = homeViewModel.products
+    val loading = homeViewModel.loading
+    val error = homeViewModel.error
+
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    var showDialog by remember { mutableStateOf(false) }
 
+    val deleteSuccess = homeViewModel.deleteSuccess
+    val success = homeViewModel.success
+
+    // Observar cambios en deleteSuccess
+    LaunchedEffect(deleteSuccess) {
+        if (deleteSuccess) {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar("Producto eliminado con éxito")
+            }
+            homeViewModel.resetDeleteSuccess()
+            homeViewModel.fetchProducts()
+        }
+    }
+
+    // Observar cambios en success
     LaunchedEffect(success) {
         if (success) {
             coroutineScope.launch {
                 snackbarHostState.showSnackbar("Producto agregado con éxito")
             }
             homeViewModel.resetSuccess()
+            homeViewModel.fetchProducts()
         }
     }
 
@@ -90,6 +84,13 @@ fun HomeScreen(
                     )
                 },
                 actions = {
+                    IconButton(onClick = { homeViewModel.fetchProducts() }) {
+                        Icon(
+                            imageVector = Icons.Default.Autorenew,
+                            contentDescription = "Recargar productos",
+                            tint = Color.DarkGray
+                        )
+                    }
                     IconButton(onClick = navigateToLogin) {
                         Icon(
                             imageVector = Icons.Default.Logout,
@@ -104,66 +105,47 @@ fun HomeScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        content = { paddingValues ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
-                ContainerTop(
-                    Modifier.weight(1f),
-                    onAddProduct = { product ->
-                        homeViewModel.addProduct(product)
-                    }
-                )
-                ContainerBottom(
-                    modifier = Modifier.weight(1f),
-                    products = products,
-                    loading = loading,
-                    error = error
-                )
+        floatingActionButton = {
+            Column(horizontalAlignment = Alignment.End) {
+                FloatingActionButton(
+                    onClick = navigateToMap,
+                    containerColor = Color.Blue,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                ) {
+                    Icon(Icons.Default.Map, contentDescription = "Mapa", tint = Color.White)
+                }
+                FloatingActionButton(
+                    onClick = { showDialog = true },
+                    containerColor = Color.Green
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = "Agregar Producto", tint = Color.White)
+                }
             }
         }
-    )
-}
-
-@Composable
-fun ContainerTop(
-    modifier: Modifier = Modifier,
-    onAddProduct: (createProductRequest) -> Unit
-) {
-    var showDialog by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = modifier
-            .background(Color.White)
-            .fillMaxWidth(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .background(Color.White)
+                .padding(16.dp)
         ) {
-            Text(
-                text = "Disfruta de esta app",
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center,
-                color = Color.DarkGray,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Image(
-                painter = painterResource(id = R.drawable.icon2),
-                contentDescription = "icon2",
-                modifier = Modifier
-                    .size(200.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .padding(1.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(onClick = { showDialog = true }) {
-                Text(text = "Agregar Producto")
+            item {
+                Text(
+                    text = "Productos disponibles",
+                    color = Color.DarkGray,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+            items(products) { product ->
+                ProductItem(product = product, onDeleteProduct = { id ->
+                    homeViewModel.deleteProduct(id)
+                },
+                    onReload ={homeViewModel.fetchProducts()}
+                )
+                Spacer(modifier = Modifier.height(10.dp))
             }
         }
     }
@@ -172,12 +154,46 @@ fun ContainerTop(
         AddProductDialog(
             onDismiss = { showDialog = false },
             onAddProduct = { productRequest ->
-                onAddProduct(productRequest)
+                homeViewModel.addProduct(productRequest)
                 showDialog = false
             }
         )
     }
 }
+
+
+@Composable
+fun ProductItem(product: ProductDTO, onDeleteProduct: (Int) -> Unit,  onReload: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.LightGray.copy(alpha = 0.1f))
+            .padding(8.dp)
+    ) {
+        Image(
+            painter = rememberAsyncImagePainter(model = product.imagen),
+            contentDescription = "Imagen del producto",
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .background(Color.White)
+                .padding(4.dp)
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = product.nombre, fontWeight = FontWeight.Bold, color = Color.DarkGray)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = product.descripcion, color = Color.Gray)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = "Precio: ${product.precio}", color = Color.Green, fontWeight = FontWeight.Medium)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        DeleteButton(
+            onClick = { onDeleteProduct(product.idproduct) },
+            onReload = { onReload }
+        )
+    }
+}
+
 
 @Composable
 fun AddProductDialog(
@@ -194,41 +210,22 @@ fun AddProductDialog(
         title = { Text(text = "Agregar Nuevo Producto") },
         text = {
             Column {
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
-                    label = { Text("Nombre") }
-                )
-                OutlinedTextField(
-                    value = descripcion,
-                    onValueChange = { descripcion = it },
-                    label = { Text("Descripción") }
-                )
-                OutlinedTextField(
-                    value = precio,
-                    onValueChange = { precio = it },
-                    label = { Text("Precio") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-                OutlinedTextField(
-                    value = imagen,
-                    onValueChange = { imagen = it },
-                    label = { Text("URL de la Imagen") }
-                )
+                OutlinedTextField(value = nombre, onValueChange = { nombre = it }, label = { Text("Nombre") })
+                OutlinedTextField(value = descripcion, onValueChange = { descripcion = it }, label = { Text("Descripción") })
+                OutlinedTextField(value = precio, onValueChange = { precio = it }, label = { Text("Precio") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                OutlinedTextField(value = imagen, onValueChange = { imagen = it }, label = { Text("URL de la Imagen") })
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    val productRequest = createProductRequest(
-                        nombre = nombre,
-                        descripcion = descripcion,
-                        precio = (precio.toDoubleOrNull() ?: 0.0).toFloat(),
-                        imagen = imagen
-                    )
-                    onAddProduct(productRequest)
-                }
-            ) {
+            Button(onClick = {
+                val productRequest = createProductRequest(
+                    nombre = nombre,
+                    descripcion = descripcion,
+                    precio = (precio.toDoubleOrNull() ?: 0.0).toFloat(),
+                    imagen = imagen
+                )
+                onAddProduct(productRequest)
+            }) {
                 Text("Agregar")
             }
         },
@@ -241,127 +238,21 @@ fun AddProductDialog(
 }
 
 @Composable
-fun ContainerBottom(
-    modifier: Modifier,
-    products: List<ProductDTO>,
-    loading: Boolean,
-    error: String
-) {
-    Box(
-        modifier = modifier.background(Color.White),
-        contentAlignment = Alignment.Center
-    ) {
-        when {
-            loading -> {
-                // Muestra un indicador de carga
-                Text(
-                    text = "Cargando productos...",
-                    textAlign = TextAlign.Center,
-                    color = Color.DarkGray,
-                    fontSize = 16.sp
-                )
-            }
-            error.isNotEmpty() -> {
-                // Muestra un mensaje de error
-                Text(
-                    text = "Error: $error",
-                    textAlign = TextAlign.Center,
-                    color = Color.Red,
-                    fontSize = 16.sp
-                )
-            }
-            products.isNotEmpty() -> {
-                // Muestra la lista de productos utilizando LazyColumn
-                LazyColumn(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .fillMaxSize()
-                ) {
-                    item {
-                        Text(
-                            text = "Productos disponibles",
-                            textAlign = TextAlign.Start,
-                            color = Color.DarkGray,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
-                    }
-                    items(products) { product ->
-                        ProductItem(product = product)
-                        Spacer(modifier = Modifier.height(10.dp))
-                    }
-                }
-            }
-            else -> {
-                // Si no hay productos
-                Text(
-                    text = "No hay productos disponibles.",
-                    textAlign = TextAlign.Center,
-                    color = Color.Gray,
-                    fontSize = 16.sp
-                )
-            }
-        }
-    }
-}
-
-
-@Composable
-fun ProductItem(product: ProductDTO) {
-    Column(
-        horizontalAlignment = Alignment.Start,
+fun DeleteButton(onClick: () -> Unit, onReload: () -> Unit) {
+    IconButton(
+        onClick = {
+            onClick()  // Primero se elimina el producto
+            onReload() // Luego se actualiza la lista de productos
+        },
         modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.LightGray.copy(alpha = 0.1f))
-            .padding(8.dp)
+            .size(40.dp) // Ajusta el tamaño del botón
     ) {
-        // Imagen del producto
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-            contentAlignment = Alignment.Center
-        ) {
-
-            Image(
-                painter = rememberAsyncImagePainter(model = product.imagen),
-                contentDescription = "Imagen del producto",
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
-                    .padding(4.dp)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        // Nombre del producto
-        Text(
-            text = product.nombre,
-            color = Color.DarkGray,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Descripción del producto
-        Text(
-            text = product.descripcion,
-            color = Color.Gray,
-            fontSize = 14.sp
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        // Precio del producto
-        Text(
-            text = "Precio: ${product.precio}",
-            color = Color.Green,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium
+        Icon(
+            imageVector = Icons.Default.Delete,
+            contentDescription = "Eliminar",
+            tint = MaterialTheme.colorScheme.error // Color rojo
         )
     }
 }
+
+
